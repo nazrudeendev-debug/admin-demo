@@ -1,0 +1,4 @@
+[00:00:01.087] Server  LOG      ✓ Ready in 723ms
+[00:00:04.109] Server  LOG      ○ Compiling / ...
+[00:00:30.838] Server  WARN     ⚠ Blocked cross-origin request from 127.0.0.1 to /_next/* resource. To allow this, configure "allowedDevOrigins" in next.config
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
