@@ -1,0 +1,428 @@
+Got you.
+You only want **the parts needed for your FRONTEND + ADMIN PANEL UI**, not backend ops, CI/CD, security, DR, etc.
+
+So I will remove:
+
+❌ CI/CD
+❌ DevOps
+❌ Cron jobs
+❌ Monitoring
+❌ Backups
+❌ Disaster recovery
+❌ GDPR
+❌ SEO
+❌ Testing
+❌ CDNs
+❌ DB snapshots
+❌ Audit logs (optional), etc.
+
+And keep ONLY:
+
+✅ Frontend requirements
+✅ Admin panel pages
+✅ What data needs to be fetched from Supabase
+✅ Import specs flow (simple)
+✅ CRUD pages
+✅ Wireframe
+✅ How to show phones, specs, brands, articles
+✅ How to manually override API values
+✅ Price management
+✅ Comparison tool
+✅ Media upload
+(Everything the frontend UI needs to display and manage.)
+
+---
+
+# ⭐ **PinoyMobile.com — Clean, Simple FRONTEND + ADMIN PANEL Requirements (FINAL)**
+
+**JavaScript only. No TypeScript.**
+**Next.js App Router + Supabase + shadcn/ui**
+
+---
+
+# 1. ADMIN PANEL PAGES (FRONTEND ONLY)
+
+### ✅ Dashboard Page
+
+Shows:
+
+* Total Brands
+* Total Phones
+* Total Published Phones
+* Total Blog/News
+* Recent imported specs
+* Recent added phones
+* Recent price updates
+* Quick actions → Add Phone / Add Brand / Add Article / Fetch Specs
+
+---
+
+## 2. Brand Management (Frontend UI)
+
+Pages:
+
+### Brand List
+
+* Table: Brand name, logo, phone count
+* Actions: Edit, Delete
+
+### Add/Edit Brand
+
+Fields:
+
+* Brand name
+* Slug
+* Upload brand logo (Supabase storage)
+
+---
+
+## 3. Phone Management (Frontend UI)
+
+### Phone List
+
+Filters:
+
+* Brand
+* Status (draft/published)
+* Release year
+* Search
+
+Table:
+
+* Image
+* Brand
+* Model name
+* Price (PH)
+* Status
+* Edit / Specs / Prices / Compare
+
+### Add Phone UI
+
+Fields:
+
+* Brand
+* Model name
+* Slug
+* Release date
+* Upload main image
+* Upload gallery images
+* Publish toggle
+
+---
+
+# 4. SPECIFICATIONS MANAGEMENT (Frontend UI)
+
+This is IMPORTANT.
+
+### SIMPLE FRONTEND WORKFLOW
+
+1. Admin opens phone → clicks **Fetch Specs**
+2. Frontend calls backend route `/api/fetch-mobile-api`
+3. Backend returns **raw specs JSON**
+4. Frontend shows **side-by-side diff**:
+
+Left: API specs
+Right: Current DB specs
+Checkbox for each spec → “Apply this spec”
+
+Buttons:
+
+* **Accept All**
+* **Accept Selected**
+* Cancel
+
+### After accepting:
+
+* Frontend sends selected specs to Supabase → upsert
+
+### Manual Editing UI:
+
+Editable spec table grouped:
+
+* Display
+* Camera
+* Battery
+* Performance
+* Network
+* Build
+* Features
+* Sensors
+* Others
+
+Each row has:
+
+* Label
+* Input field (text or number)
+* Source badge (API or Manual)
+
+---
+
+# 5. Price Management (UI)
+
+### Price List per Phone
+
+Table:
+
+* Region
+* Currency
+* Current price
+* Updated date
+* Edit
+
+### Add/Edit Price Form
+
+Fields:
+
+* Region (e.g., Philippines)
+* Currency (PHP)
+* Price
+* Note (promo / store info)
+
+### Price History Modal
+
+Line chart + list of previous price changes.
+
+---
+
+# 6. Comparison Tool (Frontend)
+
+### Create Comparison Page
+
+* Search and select 2–5 phones
+
+* Shows auto comparison table:
+
+  * Battery
+  * Display
+  * Camera
+  * Performance
+  * CPU
+  * RAM/Storage
+  * Network
+  * Features
+
+* Differences highlighted
+
+* Add custom notes
+
+* Save comparison → Frontend sends to Supabase
+
+* Publish toggle
+
+### Public Comparison Page
+
+* Read-only display of saved comparison snapshot
+
+---
+
+# 7. Articles (Blog + News)
+
+### Article List
+
+Columns: Title, Type, Status, Published date, Actions
+
+### Add/Edit Article Page
+
+Fields:
+
+* Title
+* Slug
+* Type (blog / news / review)
+* Featured image upload
+* Tags
+* Content editor (Markdown or WYSIWYG)
+* Publish toggle
+
+---
+
+# 8. Media Manager
+
+Page: `/admin/media`
+
+Features:
+
+* Upload image
+* View all images
+* Filter by type (phone/brand/article)
+* Delete image
+* Copy URL button
+
+Used for:
+
+* Phone gallery
+* Brand logos
+* Articles
+
+---
+
+# 9. Import Logs (UI Simplified)
+
+* List API imports
+* Phone name + status
+* Success or Error message
+* View “Raw JSON” button
+
+(Only for debugging imports)
+
+---
+
+# 10. Users (Optional Simplified UI)
+
+* List users
+* Change role (Admin/Editor/Viewer)
+* No need advanced permissions UI
+
+---
+
+# ⭐ 11. FRONTEND WIREFRAMES (TEXT)
+
+Below is EXACT UI structure so any AI builder (v0.dev) will understand:
+
+---
+
+### **Dashboard**
+
+```
+[KPIs Row]
+[Recent Phones Added]
+[Recent Price Updates]
+[Recent Specs Imports]
+```
+
+---
+
+### **Brands List**
+
+```
+Table:
+| Logo | Brand Name | Slug | Phone Count | Actions |
+```
+
+---
+
+### **Phone List**
+
+```
+Filters: Search | Brand | Status | Year
+Table:
+| Image | Brand | Model | Price | Status | Actions [Edit] [Specs] [Price] [Compare] |
+```
+
+---
+
+### **Phone Editor**
+
+```
+Left Panel:
+- Brand dropdown
+- Model name
+- Slug
+- Release date
+- Publish toggle
+
+Center Panel:
+- Main image uploader
+- Gallery uploader
+
+Right Panel:
+- [Fetch Specs Button]
+- [View Import Logs]
+- [Prices]
+- [Comparison]
+
+Below:
+Accordion:
+  - Display
+  - Camera
+  - Battery
+  - Network
+  - Performance
+  - Build
+  - Features
+
+Each spec row: Label | Input | Source Badge
+```
+
+---
+
+### **Fetch Specs Modal**
+
+```
+Left: API Value
+Right: Current DB Value
+[ ] checkbox
+----------
+Buttons: Accept Selected | Accept All | Cancel
+```
+
+---
+
+### **Price Manager**
+
+```
+Table of prices
+[Add Price Button]
+Click price → Edit modal
+```
+
+---
+
+### **Comparison Builder**
+
+```
+Search phone input
+Selected phones chips
+Comparison table (specs grouped)
+Save comparison + Publish toggle
+```
+
+---
+
+### **Articles**
+
+```
+Table:
+| Image | Title | Type | Status | Date | Edit |
+
+Edit Page:
+- Title
+- Slug
+- Type
+- Featured image
+- Tags
+- Content editor
+- Publish
+```
+
+---
+
+### **Media Manager**
+
+```
+Upload button
+Grid view of images
+Filter dropdown
+Delete / Copy URL
+```
+
+---
+
+# 12. What AI builders NEED to know (IMPORTANT)
+
+Tell them:
+
+**"Build only FRONTEND + ADMIN PANEL UI.
+Use Supabase for data CRUD.
+Use JavaScript only (NO TYPECRIPT).
+Create all pages, modals, tables, forms, and diff UI.
+I will handle backend logic and API keys separately."**
+
+---
+
+# ⭐ Final Output You Can Give Any AI Builder (READY TO COPY-PASTE)
+
+If you want, I will generate a **copy-paste optimized instruction** for v0.dev with this simplified list.
+
+Just say:
+
+👉 **"Give me the v0.dev-ready instructions."**

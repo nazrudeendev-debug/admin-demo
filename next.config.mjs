@@ -9,6 +9,8 @@ const nextConfig = {
     'd5f5651b-7f50-4633-821e-c11aa3544dc8-00-3ngweelyla6x7.sisko.replit.dev',
     '*.replit.dev',
     '*.repl.co',
+    '127.0.0.1',
+    'localhost',
   ],
   async headers() {
     return [

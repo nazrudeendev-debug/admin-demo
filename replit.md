@@ -4,7 +4,7 @@
 This is an admin panel for PinoyMobile.com, a mobile phone database and comparison website. The admin panel allows administrators to manage phone brands, specifications, prices, articles, and comparisons.
 
 **Project Type:** Next.js 16 (App Router) Web Application  
-**Current State:** Configured and running on Replit  
+**Current State:** Fully functional admin panel running on Replit  
 **Last Updated:** December 1, 2024
 
 ## Technology Stack
@@ -48,45 +48,63 @@ This is an admin panel for PinoyMobile.com, a mobile phone database and comparis
 
 ## Key Features
 
-### 1. Phone Management
-- Add phones with basic information (brand, model, release date)
-- Upload main images and galleries
+### 1. Dashboard
+- Total phones, published phones, brands, articles counts
+- Recent spec imports with status (success/error)
+- Recent price updates with old/new values
+- Quick action buttons for common tasks
+- Getting started workflow guide
+
+### 2. Phone Management
+- **Advanced filters:** Brand, status (published/draft), year, search
+- **Table view** with image thumbnails and pricing
+- Full edit page with tabs (Basic Info / Images)
+- Gallery image management (add/remove URLs)
 - Publish/unpublish phones
 - **Fetch specifications from mobile-api.dev API** (KEY FEATURE)
-- Manual specification editing
 
-### 2. Brand Management
+### 3. Specification Management (Enhanced)
+- **Side-by-side diff view:** Compare API specs with current database
+- Select/deselect individual specs
+- "Accept Selected" and "Accept All" buttons
+- Manual specification editing with category grouping
+- Source tracking (API vs Manual)
+
+### 4. Brand Management
 - Add, edit, and delete phone brands
 - Upload brand logos
 - Manage brand descriptions
 
-### 3. Specification Management
-The admin panel's main workflow:
-1. Add phone with basic info
-2. Click "Fetch Specs" button
-3. System fetches all specs from mobile-api.dev API
-4. Review specs in editable form
-5. Edit, remove, or add specifications
-6. Save to database
-
-### 4. Price Management
+### 5. Price Management
 - Add prices for phones (region, currency, amount)
-- View current prices
+- View current prices (prioritizes Philippines region)
 - Automatic price history tracking
 - View all price changes
 
-### 5. Content Management
-- Create blog posts, news, and reviews
-- Markdown content support
-- Featured images
-- Publish/draft status
+### 6. Media Library
+- **Grid view** of all images (phone images, brand logos, main images)
+- **Search and filter** by type
+- **Copy URL** to clipboard with feedback
+- **Upload images** (requires Supabase Storage bucket "media")
+- Safe delete (clears URL reference, doesn't delete parent records)
 
-### 6. Comparisons
-- Create phone comparisons
-- Compare multiple phones side by side
+### 7. Content Management (Enhanced)
+- Full article editor with **tabs** (Content / Preview / SEO)
+- **Markdown support** with live preview
+- **Tags management** (add/remove tags)
+- Featured image with preview
+- SEO settings (meta title, meta description, character counts)
+- Blog, News, and Review article types
+
+### 8. Comparisons (Full Builder)
+- **Phone selector** with brand filter
+- Auto-generated title and slug from selected phones
+- **Spec comparison table** with all specs side-by-side
+- **Difference highlighting** (yellow background for different values)
+- Maximum 5 phones per comparison
 - Save and publish comparisons
 
-### 7. User Management
+### 9. User Management
 - **Admin role:** Full access
 - **Editor role:** Create/edit but cannot delete
 - **Viewer role:** Read-only access
