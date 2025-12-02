@@ -1,16 +1,32 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { supabase, getCurrentUser } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { ArrowLeft, Download, Save, Trash2, Plus, Check, CheckCheck, X, ArrowRight } from 'lucide-react';
-import Link from 'next/link';
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { supabase, getCurrentUser } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  ArrowLeft,
+  Download,
+  Save,
+  Trash2,
+  Plus,
+  Check,
+  CheckCheck,
+  X,
+  ArrowRight,
+} from "lucide-react";
+import Link from "next/link";
 
 export default function PhoneSpecsPage() {
   const router = useRouter();
@@ -23,8 +39,9 @@ export default function PhoneSpecsPage() {
   const [showDiffModal, setShowDiffModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [scrapeUrl, setScrapeUrl] = useState("");
 
   useEffect(() => {
     loadPhoneAndSpecs();
@@ -32,17 +49,17 @@ export default function PhoneSpecsPage() {
 
   async function loadPhoneAndSpecs() {
     const { data: phoneData } = await supabase
-      .from('phones')
-      .select('*, brands(name)')
-      .eq('id', params.id)
+      .from("phones")
+      .select("*, brands(name)")
+      .eq("id", params.id)
       .maybeSingle();
 
     const { data: specsData } = await supabase
-      .from('specifications')
-      .select('*')
-      .eq('phone_id', params.id)
-      .order('category')
-      .order('display_order');
+      .from("specifications")
+      .select("*")
+      .eq("phone_id", params.id)
+      .order("category")
+      .order("display_order");
 
     if (phoneData) setPhone(phoneData);
     if (specsData) {
@@ -52,51 +69,36 @@ export default function PhoneSpecsPage() {
     setLoadingData(false);
   }
 
-  async function fetchFromAPI() {
+  async function scrapeFromUrl(url) {
     setLoading(true);
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
     try {
-      const searchQuery = `${phone.brands.name} ${phone.model_name}`.toLowerCase();
-      const response = await fetch(`https://mobile-api.dev/api/v1/phones?search=${encodeURIComponent(searchQuery)}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch from API');
-      }
-
-      const data = await response.json();
-
-      if (!data || !data.data || data.data.length === 0) {
-        throw new Error('Phone not found in API');
-      }
-
-      const phoneData = data.data[0];
-      const newSpecs = [];
-
-      Object.entries(phoneData).forEach(([key, value]) => {
-        if (typeof value === 'object' && value !== null) {
-          Object.entries(value).forEach(([subKey, subValue]) => {
-            if (subValue !== null && subValue !== undefined && subValue !== '') {
-              newSpecs.push({
-                category: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-                spec_key: subKey,
-                spec_value: String(subValue),
-                source: 'api',
-                display_order: newSpecs.length,
-              });
-            }
-          });
-        } else if (value !== null && value !== undefined && value !== '' && key !== 'id') {
-          newSpecs.push({
-            category: 'General',
-            spec_key: key,
-            spec_value: String(value),
-            source: 'api',
-            display_order: newSpecs.length,
-          });
-        }
+      const res = await fetch("/api/scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
       });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || "Failed to scrape URL");
+      }
+
+      const data = await res.json();
+
+      if (!data || !data.specs || data.specs.length === 0) {
+        throw new Error("No specifications found on the provided URL");
+      }
+
+      const newSpecs = data.specs.map((s, idx) => ({
+        category: s.category || "Scraped",
+        spec_key: s.spec_key || s.key || `field_${idx}`,
+        spec_value: s.spec_value || s.value || s.val || "",
+        source: "scrape",
+        display_order: idx,
+      }));
 
       setApiSpecs(newSpecs);
       const initialSelection = {};
@@ -107,22 +109,21 @@ export default function PhoneSpecsPage() {
       setShowDiffModal(true);
 
       const user = await getCurrentUser();
-      await supabase.from('api_import_logs').insert({
+      await supabase.from("api_import_logs").insert({
         phone_id: params.id,
-        api_source: 'mobile-api.dev',
-        status: 'success',
-        message: `Fetched ${newSpecs.length} specifications`,
+        api_source: "scrape",
+        status: "success",
+        message: `Scraped ${newSpecs.length} specifications from ${url}`,
         imported_by: user?.id,
       });
-
     } catch (err) {
-      setError(err.message || 'Failed to fetch specifications from API');
+      setError(err.message || "Failed to scrape URL");
 
       const user = await getCurrentUser();
-      await supabase.from('api_import_logs').insert({
+      await supabase.from("api_import_logs").insert({
         phone_id: params.id,
-        api_source: 'mobile-api.dev',
-        status: 'error',
+        api_source: "scrape",
+        status: "error",
         message: err.message,
         imported_by: user?.id,
       });
@@ -132,7 +133,7 @@ export default function PhoneSpecsPage() {
   }
 
   function toggleSpecSelection(index) {
-    setSelectedSpecs(prev => ({
+    setSelectedSpecs((prev) => ({
       ...prev,
       [index]: !prev[index],
     }));
@@ -154,52 +155,56 @@ export default function PhoneSpecsPage() {
     const selected = apiSpecs.filter((_, idx) => selectedSpecs[idx]);
     setSpecs(selected.map((spec, idx) => ({ ...spec, display_order: idx })));
     setShowDiffModal(false);
-    setSuccess(`Applied ${selected.length} specifications. Review below and save.`);
+    setSuccess(
+      `Applied ${selected.length} specifications. Review below and save.`
+    );
   }
 
   function acceptAll() {
     setSpecs(apiSpecs.map((spec, idx) => ({ ...spec, display_order: idx })));
     setShowDiffModal(false);
-    setSuccess(`Applied all ${apiSpecs.length} specifications. Review below and save.`);
+    setSuccess(
+      `Applied all ${apiSpecs.length} specifications. Review below and save.`
+    );
   }
 
   function updateSpec(index, field, value) {
-    setSpecs(prev => {
+    setSpecs((prev) => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value, source: 'manual' };
+      updated[index] = { ...updated[index], [field]: value, source: "manual" };
       return updated;
     });
   }
 
   function removeSpec(index) {
-    setSpecs(prev => prev.filter((_, i) => i !== index));
+    setSpecs((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function addNewSpec(category = '') {
-    setSpecs(prev => [...prev, {
-      category: category,
-      spec_key: '',
-      spec_value: '',
-      source: 'manual',
-      display_order: prev.length,
-    }]);
+  function addNewSpec(category = "") {
+    setSpecs((prev) => [
+      ...prev,
+      {
+        category: category,
+        spec_key: "",
+        spec_value: "",
+        source: "manual",
+        display_order: prev.length,
+      },
+    ]);
   }
 
   async function saveSpecs() {
     setLoading(true);
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
     try {
-      await supabase
-        .from('specifications')
-        .delete()
-        .eq('phone_id', params.id);
+      await supabase.from("specifications").delete().eq("phone_id", params.id);
 
       if (specs.length > 0) {
         const specsToInsert = specs.map((spec, idx) => ({
           phone_id: params.id,
-          category: spec.category || 'General',
+          category: spec.category || "General",
           spec_key: spec.spec_key,
           spec_value: spec.spec_value,
           source: spec.source,
@@ -207,17 +212,16 @@ export default function PhoneSpecsPage() {
         }));
 
         const { error: insertError } = await supabase
-          .from('specifications')
+          .from("specifications")
           .insert(specsToInsert);
 
         if (insertError) throw insertError;
       }
 
-      setSuccess('Specifications saved successfully!');
+      setSuccess("Specifications saved successfully!");
       setCurrentDbSpecs(specs);
-
     } catch (err) {
-      setError(err.message || 'Failed to save specifications');
+      setError(err.message || "Failed to save specifications");
     }
 
     setLoading(false);
@@ -225,7 +229,8 @@ export default function PhoneSpecsPage() {
 
   function findDbSpec(apiSpec) {
     return currentDbSpecs.find(
-      db => db.category === apiSpec.category && db.spec_key === apiSpec.spec_key
+      (db) =>
+        db.category === apiSpec.category && db.spec_key === apiSpec.spec_key
     );
   }
 
@@ -242,14 +247,14 @@ export default function PhoneSpecsPage() {
   }
 
   const groupedSpecs = specs.reduce((acc, spec) => {
-    const cat = spec.category || 'General';
+    const cat = spec.category || "General";
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(spec);
     return acc;
   }, {});
 
   const groupedApiSpecs = apiSpecs.reduce((acc, spec, idx) => {
-    const cat = spec.category || 'General';
+    const cat = spec.category || "General";
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push({ ...spec, originalIndex: idx });
     return acc;
@@ -266,13 +271,29 @@ export default function PhoneSpecsPage() {
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">Phone Specifications</h1>
-          <p className="text-gray-600 mt-1">{phone.brands.name} {phone.model_name}</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Phone Specifications
+          </h1>
+          <p className="text-gray-600 mt-1">
+            {phone.brands.name} {phone.model_name}
+          </p>
         </div>
-        <Button onClick={fetchFromAPI} disabled={loading} className="gap-2">
-          <Download className="h-4 w-4" />
-          {loading ? 'Fetching...' : 'Fetch from API'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Input
+            value={scrapeUrl}
+            onChange={(e) => setScrapeUrl(e.target.value)}
+            placeholder="Enter URL to scrape (e.g. https://example.com/phone)"
+            className="w-[420px]"
+          />
+          <Button
+            onClick={() => scrapeFromUrl(scrapeUrl)}
+            disabled={loading || !scrapeUrl}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            {loading ? "Scraping..." : "Scrape URL"}
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -292,7 +313,7 @@ export default function PhoneSpecsPage() {
           <DialogHeader>
             <DialogTitle>Compare API Specs with Current Database</DialogTitle>
           </DialogHeader>
-          
+
           <div className="flex items-center justify-between py-2 border-b">
             <div className="text-sm text-gray-600">
               {selectedCount} of {apiSpecs.length} specifications selected
@@ -318,56 +339,81 @@ export default function PhoneSpecsPage() {
               <div className="col-span-1 text-center"></div>
               <div className="col-span-3">Current DB Value</div>
             </div>
-            
-            {Object.entries(groupedApiSpecs).map(([category, categorySpecs]) => (
-              <div key={category} className="border-b last:border-b-0">
-                <div className="bg-gray-50 px-2 py-1 font-medium text-sm text-gray-700">
-                  {category}
+
+            {Object.entries(groupedApiSpecs).map(
+              ([category, categorySpecs]) => (
+                <div key={category} className="border-b last:border-b-0">
+                  <div className="bg-gray-50 px-2 py-1 font-medium text-sm text-gray-700">
+                    {category}
+                  </div>
+                  {categorySpecs.map((spec) => {
+                    const dbSpec = findDbSpec(spec);
+                    const isDifferent =
+                      !dbSpec || dbSpec.spec_value !== spec.spec_value;
+                    const isSelected = selectedSpecs[spec.originalIndex];
+
+                    return (
+                      <div
+                        key={spec.originalIndex}
+                        className={`grid grid-cols-12 gap-2 py-2 px-2 items-center cursor-pointer hover:bg-gray-50 ${
+                          isSelected ? "bg-blue-50" : ""
+                        }`}
+                        onClick={() => toggleSpecSelection(spec.originalIndex)}
+                      >
+                        <div className="col-span-1">
+                          <input
+                            type="checkbox"
+                            checked={isSelected || false}
+                            onChange={() => {}}
+                            className="h-4 w-4"
+                          />
+                        </div>
+                        <div className="col-span-2 text-sm text-gray-500">
+                          {spec.category}
+                        </div>
+                        <div className="col-span-2 text-sm font-medium">
+                          {spec.spec_key}
+                        </div>
+                        <div
+                          className={`col-span-3 text-sm ${
+                            isDifferent ? "text-green-600 font-medium" : ""
+                          }`}
+                        >
+                          {spec.spec_value}
+                        </div>
+                        <div className="col-span-1 text-center">
+                          {isDifferent && (
+                            <ArrowRight className="h-4 w-4 text-gray-400 mx-auto" />
+                          )}
+                        </div>
+                        <div
+                          className={`col-span-3 text-sm ${
+                            isDifferent ? "text-gray-400" : "text-gray-600"
+                          }`}
+                        >
+                          {dbSpec ? (
+                            dbSpec.spec_value
+                          ) : (
+                            <span className="italic">Not in DB</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                {categorySpecs.map((spec) => {
-                  const dbSpec = findDbSpec(spec);
-                  const isDifferent = !dbSpec || dbSpec.spec_value !== spec.spec_value;
-                  const isSelected = selectedSpecs[spec.originalIndex];
-                  
-                  return (
-                    <div
-                      key={spec.originalIndex}
-                      className={`grid grid-cols-12 gap-2 py-2 px-2 items-center cursor-pointer hover:bg-gray-50 ${
-                        isSelected ? 'bg-blue-50' : ''
-                      }`}
-                      onClick={() => toggleSpecSelection(spec.originalIndex)}
-                    >
-                      <div className="col-span-1">
-                        <input
-                          type="checkbox"
-                          checked={isSelected || false}
-                          onChange={() => {}}
-                          className="h-4 w-4"
-                        />
-                      </div>
-                      <div className="col-span-2 text-sm text-gray-500">{spec.category}</div>
-                      <div className="col-span-2 text-sm font-medium">{spec.spec_key}</div>
-                      <div className={`col-span-3 text-sm ${isDifferent ? 'text-green-600 font-medium' : ''}`}>
-                        {spec.spec_value}
-                      </div>
-                      <div className="col-span-1 text-center">
-                        {isDifferent && <ArrowRight className="h-4 w-4 text-gray-400 mx-auto" />}
-                      </div>
-                      <div className={`col-span-3 text-sm ${isDifferent ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {dbSpec ? dbSpec.spec_value : <span className="italic">Not in DB</span>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
+              )
+            )}
           </div>
 
           <DialogFooter className="border-t pt-4">
             <Button variant="outline" onClick={() => setShowDiffModal(false)}>
               Cancel
             </Button>
-            <Button variant="outline" onClick={acceptSelected} disabled={selectedCount === 0}>
+            <Button
+              variant="outline"
+              onClick={acceptSelected}
+              disabled={selectedCount === 0}
+            >
               <Check className="h-4 w-4 mr-1" />
               Accept Selected ({selectedCount})
             </Button>
@@ -382,13 +428,15 @@ export default function PhoneSpecsPage() {
       {specs.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-gray-500 mb-4">No specifications yet. Fetch from API or add manually.</p>
+            <p className="text-gray-500 mb-4">
+              No specifications yet. Fetch from API or add manually.
+            </p>
             <div className="flex gap-2 justify-center">
-              <Button onClick={fetchFromAPI} disabled={loading} className="gap-2">
-                <Download className="h-4 w-4" />
-                Fetch from API
-              </Button>
-              <Button onClick={() => addNewSpec('General')} variant="outline" className="gap-2">
+              <Button
+                onClick={() => addNewSpec("General")}
+                variant="outline"
+                className="gap-2"
+              >
                 <Plus className="h-4 w-4" />
                 Add Manually
               </Button>
@@ -416,23 +464,42 @@ export default function PhoneSpecsPage() {
                   {categorySpecs.map((spec) => {
                     const globalIndex = specs.indexOf(spec);
                     return (
-                      <div key={globalIndex} className="grid grid-cols-12 gap-3 items-center">
+                      <div
+                        key={globalIndex}
+                        className="grid grid-cols-12 gap-3 items-center"
+                      >
                         <div className="col-span-3">
                           <Input
                             value={spec.spec_key}
-                            onChange={(e) => updateSpec(globalIndex, 'spec_key', e.target.value)}
+                            onChange={(e) =>
+                              updateSpec(
+                                globalIndex,
+                                "spec_key",
+                                e.target.value
+                              )
+                            }
                             placeholder="Key (e.g., Screen Size)"
                           />
                         </div>
                         <div className="col-span-6">
                           <Input
                             value={spec.spec_value}
-                            onChange={(e) => updateSpec(globalIndex, 'spec_value', e.target.value)}
+                            onChange={(e) =>
+                              updateSpec(
+                                globalIndex,
+                                "spec_value",
+                                e.target.value
+                              )
+                            }
                             placeholder="Value (e.g., 6.7 inches)"
                           />
                         </div>
                         <div className="col-span-2 flex items-center gap-2">
-                          <Badge variant={spec.source === 'api' ? 'default' : 'secondary'}>
+                          <Badge
+                            variant={
+                              spec.source === "api" ? "default" : "secondary"
+                            }
+                          >
                             {spec.source}
                           </Badge>
                         </div>
@@ -457,9 +524,13 @@ export default function PhoneSpecsPage() {
           <div className="flex items-center gap-3 sticky bottom-0 bg-white py-4 border-t">
             <Button onClick={saveSpecs} disabled={loading} className="gap-2">
               <Save className="h-4 w-4" />
-              {loading ? 'Saving...' : 'Save All Specifications'}
+              {loading ? "Saving..." : "Save All Specifications"}
             </Button>
-            <Button onClick={() => addNewSpec('')} variant="outline" className="gap-2">
+            <Button
+              onClick={() => addNewSpec("")}
+              variant="outline"
+              className="gap-2"
+            >
               <Plus className="h-4 w-4" />
               Add New Spec
             </Button>
